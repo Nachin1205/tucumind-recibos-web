@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recibo #{{ receipt.receipt_number }}</title>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            font-size: 14px;
+        }
+
+        .receipt-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 40px;
+            border-bottom: 2px solid #3b82f6;
+            padding-bottom: 20px;
+        }
+
+        .company-info h1 {
+            margin: 0;
+            color: #1e3a8a;
+            font-size: 24px;
+        }
+
+        .receipt-details {
+            text-align: right;
+        }
+
+        .receipt-details h2 {
+            margin: 0 0 10px 0;
+            color: #3b82f6;
+        }
+
+        .status-canceled {
+            color: #ef4444;
+            font-weight: bold;
+            font-size: 18px;
+            margin-bottom: 10px;
+            border: 2px solid #ef4444;
+            padding: 5px;
+            display: inline-block;
+        }
+
+        .section {
+            margin-bottom: 30px;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: bold;
+            background-color: #f8fafc;
+            padding: 8px;
+            border-left: 4px solid #3b82f6;
+            margin-bottom: 15px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        th,
+        td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        th {
+            background-color: #f1f5f9;
+            color: #475569;
+            font-weight: 600;
+        }
+
+        .totals-table {
+            width: 50%;
+            float: right;
+        }
+
+        .totals-table td {
+            border: none;
+            padding: 6px 10px;
+        }
+
+        .totals-table .total-row {
+            font-weight: bold;
+            font-size: 16px;
+            border-top: 2px solid #cbd5e1;
+        }
+
+        .clearfix::after {
+            content: "";
+            clear: both;
+            display: table;
+        }
+
+        .footer {
+            margin-top: 50px;
+            text-align: center;
+            color: #64748b;
+            font-size: 12px;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 20px;
+        }
+
+        @media print {
+            body {
+                padding: 0;
+                background-color: white;
+            }
+
+            .receipt-container {
+                border: none;
+                box-shadow: none;
+                max-width: 100%;
+                padding: 0;
+            }
+
+            .status-canceled {
+                border-color: #000;
+                color: #000;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="receipt-container">
+        <div class="header">
+            <div class="company-info">
+                <h1>TUCUMIND</h1>
+                <p>Gestión de Recibos Digitales</p>
+            </div>
+            <div class="receipt-details">
+                {% if receipt.canceled_at %}
+                <div class="status-canceled">ANULADO</div>
+                {% endif %}
+                <h2>RECIBO OFICIAL</h2>
+                <p><strong>Nº:</strong> {{ "%08d"|format(receipt.receipt_number) }}</p>
+                <p><strong>Fecha:</strong> {{ receipt.issue_date.strftime('%d/%m/%Y') }}</p>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">Datos del Cliente</div>
+            <p><strong>Señor(es):</strong> {{ receipt.client_snapshot.name }}</p>
+            {% if receipt.client_snapshot.get('cuit') %}
+            <p><strong>CUIT:</strong> {{ receipt.client_snapshot.cuit }}</p>
+            {% endif %}
+            {% if receipt.client_snapshot.get('address') %}
+            <p><strong>Domicilio:</strong> {{ receipt.client_snapshot.address }}
+                {% if receipt.client_snapshot.get('city') %} - {{ receipt.client_snapshot.city }}{% endif %}</p>
+            {% endif %}
+            {% if receipt.client_snapshot.get('iva_type') %}
+            <p><strong>Condición IVA:</strong> {{ receipt.client_snapshot.iva_type }}</p>
+            {% endif %}
+        </div>
+
+        <div class="section">
+            <div class="section-title">Concepto</div>
+            <p>{{ receipt.concept or 'Pago a cuenta' }}</p>
+        </div>
+
+        <div class="section">
+            <div class="section-title">Detalle de Pagos</div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Tipo</th>
+                        <th>Banco</th>
+                        <th>Nº Referencia</th>
+                        <th style="text-align: right;">Importe</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for payment in receipt.payments %}
+                    <tr>
+                        <td>{{ payment.payment_date.strftime('%d/%m/%Y') }}</td>
+                        <td>{{ payment.type.value }}</td>
+                        <td>{{ payment.bank or '-' }}</td>
+                        <td>{{ payment.ref_number or '-' }}</td>
+                        <td style="text-align: right;">$ {{ "%.2f"|format(payment.amount) }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" style="text-align: center;">No hay pagos registrados.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="section clearfix">
+            <table class="totals-table">
+                <tr>
+                    <td>Subtotal:</td>
+                    <td style="text-align: right;">$ {{ "%.2f"|format(receipt.subtotal) }}</td>
+                </tr>
+                {% if receipt.withholding_iibb > 0 %}
+                <tr>
+                    <td>Ret. IIBB:</td>
+                    <td style="text-align: right;">- $ {{ "%.2f"|format(receipt.withholding_iibb) }}</td>
+                </tr>
+                {% endif %}
+                {% if receipt.withholding_ganancias > 0 %}
+                <tr>
+                    <td>Ret. Ganancias:</td>
+                    <td style="text-align: right;">- $ {{ "%.2f"|format(receipt.withholding_ganancias) }}</td>
+                </tr>
+                {% endif %}
+                {% if receipt.withholding_suss > 0 %}
+                <tr>
+                    <td>Ret. SUSS:</td>
+                    <td style="text-align: right;">- $ {{ "%.2f"|format(receipt.withholding_suss) }}</td>
+                </tr>
+                {% endif %}
+                {% if receipt.withholding_tem > 0 %}
+                <tr>
+                    <td>Ret. TEM:</td>
+                    <td style="text-align: right;">- $ {{ "%.2f"|format(receipt.withholding_tem) }}</td>
+                </tr>
+                {% endif %}
+                <tr class="total-row">
+                    <td>Total:</td>
+                    <td style="text-align: right;">$ {{ "%.2f"|format(receipt.total) }}</td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="footer">
+            Documento generado electrónicamente el {{ current_date }}
+        </div>
+    </div>
+</body>
+
+</html>
