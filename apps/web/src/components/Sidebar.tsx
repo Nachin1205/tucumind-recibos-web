@@ -16,7 +16,7 @@ export default function Sidebar() {
         { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
         { to: '/recibos', icon: Receipt, label: 'Recibos' },
         { to: '/clientes', icon: Users, label: 'Clientes' },
-        { to: '/ocr', icon: ScanText, label: 'OCR (Pronto)' },
+        { to: '/ocr', icon: ScanText, label: 'OCR Digitalización' },
         { to: '/config', icon: Settings, label: 'Configuración' },
     ];
 

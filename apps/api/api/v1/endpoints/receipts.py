@@ -1,14 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
-from sqlalchemy import desc
+from sqlalchemy import desc, func
 from datetime import datetime, timezone
 from typing import List, Any
-
-templates = Jinja2Templates(directory="templates")
-
-templates = Jinja2Templates(directory="templates")
 
 from models.receipt import Receipt
 from models.receipt_payment import ReceiptPayment
@@ -18,6 +14,7 @@ from core.database import get_db
 from core.security import get_current_user
 
 router = APIRouter()
+templates = Jinja2Templates(directory="templates")
 
 @router.get("/", response_model=List[ReceiptResponse])
 def read_receipts(
@@ -57,7 +54,6 @@ def create_receipt(
         client_snapshot = {"name": "Consumidor Final"}
 
     # Calculate sequential receipt number (MVP single tenant approach)
-    from sqlalchemy import func
     max_number = db.query(func.max(Receipt.receipt_number)).scalar() or 0
     next_number = max_number + 1
 

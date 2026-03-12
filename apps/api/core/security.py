@@ -14,13 +14,19 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/v1/auth/login")
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     try:
-        # Debugging auth
-        # print(f"DEBUG AUTH: plain={repr(plain_password)} hashed={repr(hashed_password)}")
         h = hashed_password.strip()
+        with open("auth_debug.log", "a") as f:
+            f.write(f"Attempt: user={settings.ADMIN_USER} pass={plain_password} hash={h}\n")
+        
         result = bcrypt.checkpw(plain_password.encode('utf-8'), h.encode('utf-8'))
+        
+        with open("auth_debug.log", "a") as f:
+            f.write(f"Result: {result}\n")
+            
         return result
     except Exception as e:
-        print(f"AUTH ERROR: {e}")
+        with open("auth_debug.log", "a") as f:
+            f.write(f"AUTH ERROR: {str(e)}\n")
         return False
 
 def get_password_hash(password: str) -> str:
