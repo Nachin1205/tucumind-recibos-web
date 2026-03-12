@@ -138,9 +138,31 @@ export default function Receipts() {
         }
     };
 
-    const handlePrint = (id: number) => {
-        const printUrl = `${api.defaults.baseURL}/receipts/${id}/print`;
-        window.open(printUrl, '_blank');
+    const handlePrint = async (id: number) => {
+        const printWindow = window.open('', '_blank', 'noopener,noreferrer');
+        if (!printWindow) {
+            alert('El navegador bloqueó la ventana de impresión');
+            return;
+        }
+
+        printWindow.document.write('<p style="font-family: sans-serif; padding: 24px;">Generando recibo...</p>');
+
+        try {
+            const response = await api.get(`/receipts/${id}/print`, {
+                responseType: 'text',
+                headers: {
+                    Accept: 'text/html',
+                },
+            });
+
+            printWindow.document.open();
+            printWindow.document.write(response.data);
+            printWindow.document.close();
+        } catch (error) {
+            printWindow.close();
+            console.error('Failed to print receipt:', error);
+            alert('Error al generar la vista imprimible del recibo');
+        }
     };
 
     const filteredReceipts = receipts.filter((receipt) => {

@@ -1,11 +1,14 @@
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, List
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
-from sqlalchemy import desc, func
+from sqlalchemy import desc, text
+from sqlalchemy.exc import IntegrityError, ProgrammingError
 from sqlalchemy.orm import Session
+from sqlalchemy.orm import selectinload
 
 from core.database import get_db
 from core.security import get_current_user
@@ -15,7 +18,32 @@ from models.receipt_payment import ReceiptPayment
 from schemas.receipt import ReceiptCreate, ReceiptResponse
 
 router = APIRouter()
-templates = Jinja2Templates(directory="templates")
+TEMPLATES_DIR = Path(__file__).resolve().parents[3] / "templates"
+templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
+
+
+def _round_money(value: float) -> float:
+    return round(float(value), 2)
+
+
+def _expected_receipt_total(receipt_in: ReceiptCreate) -> float:
+    return _round_money(
+        receipt_in.subtotal
+        - receipt_in.withholding_iibb
+        - receipt_in.withholding_ganancias
+        - receipt_in.withholding_suss
+        - receipt_in.withholding_tem
+    )
+
+
+def _next_receipt_number(db: Session) -> int:
+    try:
+        return db.execute(text("SELECT nextval('receipt_number_seq')")).scalar_one()
+    except ProgrammingError as exc:
+        raise HTTPException(
+            status_code=500,
+            detail="Receipt number sequence is missing. Run `alembic upgrade head` in production.",
+        ) from exc
 
 
 @router.get("/", response_model=List[ReceiptResponse])
@@ -26,10 +54,14 @@ def read_receipts(
     current_user: str = Depends(get_current_user)
 ) -> Any:
     """Read all receipts ordered by status (active first) and date desc."""
-    receipts = db.query(Receipt).order_by(
-        Receipt.canceled_at.asc(),
-        desc(Receipt.issue_date)
-    ).offset(skip).limit(limit).all()
+    receipts = (
+        db.query(Receipt)
+        .options(selectinload(Receipt.payments))
+        .order_by(Receipt.canceled_at.asc(), desc(Receipt.issue_date))
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
     return receipts
 
 
@@ -39,6 +71,20 @@ def create_receipt(
     db: Session = Depends(get_db),
     current_user: str = Depends(get_current_user)
 ) -> Any:
+    if not receipt_in.payments:
+        raise HTTPException(status_code=400, detail="At least one payment is required")
+
+    expected_total = _expected_receipt_total(receipt_in)
+    payments_total = _round_money(sum(payment.amount for payment in receipt_in.payments))
+    provided_total = _round_money(receipt_in.total)
+
+    if expected_total < 0:
+        raise HTTPException(status_code=400, detail="Receipt total cannot be negative")
+    if abs(provided_total - expected_total) > 0.01:
+        raise HTTPException(status_code=400, detail="Receipt total does not match subtotal and withholdings")
+    if abs(payments_total - expected_total) > 0.01:
+        raise HTTPException(status_code=400, detail="Payments total does not match receipt total")
+
     client_snapshot = {}
     if receipt_in.client_id:
         client = db.query(Client).filter(Client.id == receipt_in.client_id).first()
@@ -55,8 +101,7 @@ def create_receipt(
     else:
         client_snapshot = {"name": "Consumidor Final"}
 
-    max_number = db.query(func.max(Receipt.receipt_number)).scalar() or 0
-    next_number = max_number + 1
+    next_number = _next_receipt_number(db)
 
     receipt_data = receipt_in.model_dump(exclude={"payments"})
     receipt = Receipt(
@@ -71,8 +116,18 @@ def create_receipt(
         payment = ReceiptPayment(**p_in.model_dump(), receipt_id=receipt.id)
         db.add(payment)
 
-    db.commit()
-    db.refresh(receipt)
+    try:
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="Could not create receipt due to a numbering conflict") from exc
+
+    receipt = (
+        db.query(Receipt)
+        .options(selectinload(Receipt.payments))
+        .filter(Receipt.id == receipt.id)
+        .first()
+    )
     return receipt
 
 
@@ -82,7 +137,12 @@ def read_receipt(
     db: Session = Depends(get_db),
     current_user: str = Depends(get_current_user)
 ) -> Any:
-    receipt = db.query(Receipt).filter(Receipt.id == receipt_id).first()
+    receipt = (
+        db.query(Receipt)
+        .options(selectinload(Receipt.payments))
+        .filter(Receipt.id == receipt_id)
+        .first()
+    )
     if not receipt:
         raise HTTPException(status_code=404, detail="Receipt not found")
     return receipt
@@ -110,9 +170,15 @@ def cancel_receipt(
 def print_receipt(
     request: Request,
     receipt_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: str = Depends(get_current_user),
 ):
-    receipt = db.query(Receipt).filter(Receipt.id == receipt_id).first()
+    receipt = (
+        db.query(Receipt)
+        .options(selectinload(Receipt.payments))
+        .filter(Receipt.id == receipt_id)
+        .first()
+    )
     if not receipt:
         raise HTTPException(status_code=404, detail="Receipt not found")
 

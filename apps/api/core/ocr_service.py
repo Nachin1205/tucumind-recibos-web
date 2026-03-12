@@ -1,21 +1,21 @@
 import pytesseract
 from PIL import Image
 import io
-import re
-from typing import Optional, Dict, Any, List
-from pdf2image import convert_from_bytes
-
 import os
+import re
+from typing import Any, Dict, List, Optional
+from pdf2image import convert_from_bytes
 
 class OCRService:
     def __init__(self, tesseract_cmd: Optional[str] = None):
-        if tesseract_cmd:
-            pytesseract.pytesseract.tesseract_cmd = tesseract_cmd
+        configured_tesseract_cmd = tesseract_cmd or os.getenv("TESSERACT_CMD")
+        if configured_tesseract_cmd:
+            pytesseract.pytesseract.tesseract_cmd = configured_tesseract_cmd
         else:
-            # Common Windows path
+            # Windows fallback for local development only.
             win_tesseract = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
             if os.path.exists(win_tesseract):
-                 pytesseract.pytesseract.tesseract_cmd = win_tesseract
+                pytesseract.pytesseract.tesseract_cmd = win_tesseract
 
     async def extract_receipt_data(self, image_bytes: bytes) -> Dict[str, Any]:
         """

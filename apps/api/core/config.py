@@ -1,5 +1,5 @@
-from functools import lru_cache
 from pathlib import Path
+from functools import lru_cache
 from typing import Optional
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -14,6 +14,9 @@ ENV_FILES = (
 class Settings(BaseSettings):
     ENVIRONMENT: str = "development"
     PORT: int = 8000
+    APP_DOMAIN: str = "recibos.tucumind.com"
+    CORS_ORIGINS: str = "https://recibos.tucumind.com,http://localhost:5173,http://127.0.0.1:5173"
+    ALLOWED_HOSTS: str = "recibos.tucumind.com,localhost,127.0.0.1"
 
     # DB Settings
     DATABASE_URL: Optional[str] = None
@@ -39,6 +42,18 @@ class Settings(BaseSettings):
         if self.DATABASE_URL:
             return self.DATABASE_URL
         return f"postgresql+psycopg2://{self.DB_USER}:{self.DB_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
+
+    @property
+    def cors_origins_list(self) -> list[str]:
+        return [origin.strip() for origin in self.CORS_ORIGINS.split(",") if origin.strip()]
+
+    @property
+    def allowed_hosts_list(self) -> list[str]:
+        return [host.strip() for host in self.ALLOWED_HOSTS.split(",") if host.strip()]
+
+    @property
+    def is_production(self) -> bool:
+        return self.ENVIRONMENT.lower() == "production"
 
 
 @lru_cache()

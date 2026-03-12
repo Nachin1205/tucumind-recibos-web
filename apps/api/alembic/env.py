@@ -14,13 +14,9 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-import os
 import sys
-from dotenv import load_dotenv
 
 sys.path.insert(0, os.path.realpath(os.path.join(os.path.dirname(__file__), '..')))
-dotenv_path = os.path.join(os.path.dirname(__file__), '..', '..', '.env')
-load_dotenv(dotenv_path)
 
 from models import Base
 from core.config import get_settings
@@ -28,7 +24,7 @@ from core.config import get_settings
 target_metadata = Base.metadata
 
 settings = get_settings()
-config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+config.set_main_option("sqlalchemy.url", settings.resolved_database_url)
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:

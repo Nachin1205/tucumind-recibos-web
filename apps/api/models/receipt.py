@@ -7,7 +7,7 @@ class Receipt(Base):
     __tablename__ = "receipts"
 
     id = Column(Integer, primary_key=True, index=True)
-    receipt_number = Column(Integer, index=True, nullable=False) # Not unique globally due to tenant rules mentioned later, but MVP is single tenant
+    receipt_number = Column(Integer, unique=True, nullable=False)
     issue_date = Column(DateTime(timezone=True), default=func.now())
     client_id = Column(Integer, ForeignKey("clients.id"), nullable=True)
     client_snapshot = Column(JSON, nullable=False)

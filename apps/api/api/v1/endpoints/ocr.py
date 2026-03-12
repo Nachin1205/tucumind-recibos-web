@@ -1,12 +1,15 @@
 import io
+import logging
 import zipfile
-import traceback
-from typing import List, Any, Dict
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from typing import Any, List
+
+from fastapi import APIRouter, Depends, File, UploadFile
+
 from core.security import get_current_user
 from core.ocr_service import ocr_service
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 @router.post("/process-batch")
 async def process_ocr_batch(
@@ -17,23 +20,20 @@ async def process_ocr_batch(
     Extract data from multiple images, PDFs or images/PDFs inside a ZIP file.
     """
     results = []
-    
+
     for file in files:
         filename = file.filename or "unknown"
         try:
             content_bytes: bytes = await file.read()
-            print(f"DEBUG OCR: Processing {filename} ({len(content_bytes)} bytes)")
-            
-            # 1. ZIP File
+
             if filename.lower().endswith('.zip'):
                 try:
                     with zipfile.ZipFile(io.BytesIO(content_bytes)) as z:
                         for zip_info in z.infolist():
                             if zip_info.is_dir():
                                 continue
-                            
+
                             lname = zip_info.filename.lower()
-                            # Images in ZIP
                             if lname.endswith(('.png', '.jpg', '.jpeg', '.tiff', '.bmp')):
                                 with z.open(zip_info) as f:
                                     img_bytes = f.read()
@@ -45,7 +45,6 @@ async def process_ocr_batch(
                                         "status": "success" if ocr_result.get("success") else "error",
                                         "error": ocr_result.get("error")
                                     })
-                            # PDFs in ZIP
                             elif lname.endswith('.pdf'):
                                 with z.open(zip_info) as f:
                                     pdf_bytes = f.read()
@@ -61,11 +60,9 @@ async def process_ocr_batch(
                                             "error": res.get("error")
                                         })
                 except Exception as e:
-                    with open("ocr_debug.log", "a") as logf:
-                        logf.write(f"ZIP ERROR ({filename}): {str(e)}\n{traceback.format_exc()}\n")
+                    logger.exception("ZIP OCR processing failed for %s", filename)
                     results.append({"filename": filename, "status": "error", "error": f"ZIP Error: {str(e)}"})
 
-            # 2. PDF File
             elif filename.lower().endswith('.pdf'):
                 try:
                     pdf_results = await ocr_service.extract_pdf_data(content_bytes)
@@ -82,7 +79,6 @@ async def process_ocr_batch(
                 except Exception as e:
                     results.append({"filename": filename, "status": "error", "error": f"PDF Error: {str(e)}"})
 
-            # 3. Assume Image
             else:
                 try:
                     ocr_result = await ocr_service.extract_receipt_data(content_bytes)
@@ -91,12 +87,13 @@ async def process_ocr_batch(
                         "extracted_number": ocr_result.get("extracted_number"),
                         "extracted_date": ocr_result.get("extracted_date"),
                         "status": "success" if ocr_result.get("success") else "error",
-                        "error": ocr_result.get("error")
+                                        "error": ocr_result.get("error")
                     })
                 except Exception as e:
                     results.append({"filename": filename, "status": "error", "error": f"Image Error: {str(e)}"})
-                    
+
         except Exception as global_e:
+            logger.exception("OCR batch processing failed for %s", filename)
             results.append({"filename": filename, "status": "error", "error": f"Global Error: {str(global_e)}"})
-                
+
     return results
