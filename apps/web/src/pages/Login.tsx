@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Lock, User } from 'lucide-react';
+import { TUCUMIND_LOGO_SRC } from '../constants/branding';
 
 export default function Login() {
     const [username, setUsername] = useState('');
@@ -26,13 +27,19 @@ export default function Login() {
 
     return (
         <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden border border-slate-100">
-                <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-8 text-center">
-                    <h1 className="text-3xl font-bold text-white mb-2">TUCUMIND</h1>
-                    <p className="text-blue-100">Gestión de Recibos Digitales</p>
+            <div className="w-full max-w-md overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-xl">
+                <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-6 text-center sm:p-8">
+                    <div className="mx-auto flex h-24 w-[260px] items-center justify-center overflow-hidden sm:h-28 sm:w-[320px]">
+                        <img
+                            src={TUCUMIND_LOGO_SRC}
+                            alt="TUCUMIND"
+                            className="h-full w-full scale-[2.1] object-contain"
+                        />
+                    </div>
+                    <p className="mt-3 text-blue-100">Gestión de Recibos Digitales</p>
                 </div>
 
-                <div className="p-8">
+                <div className="p-6 sm:p-8">
                     <form onSubmit={handleSubmit} className="space-y-6">
                         {error && (
                             <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm text-center">

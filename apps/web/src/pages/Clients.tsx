@@ -166,7 +166,7 @@ export default function Clients() {
                     <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Clientes</h1>
                     <p className="text-sm text-slate-500 mt-1">Gestione su cartera de clientes y consumidores finales.</p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
                     <input
                         type="file"
                         ref={fileInputRef}
@@ -179,10 +179,11 @@ export default function Clients() {
                         icon={Upload}
                         onClick={() => fileInputRef.current?.click()}
                         isLoading={isUploading}
+                        className="w-full sm:w-auto"
                     >
                         Importar Excel
                     </Button>
-                    <Button onClick={() => handleOpenModal()} icon={Plus}>
+                    <Button onClick={() => handleOpenModal()} icon={Plus} className="w-full sm:w-auto">
                         Nuevo Cliente
                     </Button>
                 </div>
@@ -259,11 +260,11 @@ export default function Clients() {
                         </div>
                     </div>
 
-                    <div className="mt-6 flex justify-end space-x-3 pt-4 border-t border-slate-100">
-                        <Button variant="secondary" onClick={handleCloseModal} type="button">
+                    <div className="mt-6 flex flex-col-reverse gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:justify-end">
+                        <Button variant="secondary" onClick={handleCloseModal} type="button" className="w-full sm:w-auto">
                             Cancelar
                         </Button>
-                        <Button type="submit">
+                        <Button type="submit" className="w-full sm:w-auto">
                             {editingClient ? 'Guardar Cambios' : 'Crear Cliente'}
                         </Button>
                     </div>

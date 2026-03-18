@@ -129,8 +129,8 @@ export default function Digitization() {
             </div>
 
             {/* Upload Zone */}
-            <div 
-                className={`relative border-2 border-dashed rounded-2xl p-8 transition-all flex flex-col items-center justify-center text-center ${
+            <div
+                className={`relative flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-6 text-center transition-all sm:p-8 ${
                     dragActive ? 'border-blue-500 bg-blue-50' : 'border-slate-300 bg-white hover:border-slate-400'
                 }`}
                 onDragEnter={handleDrag}
@@ -176,12 +176,12 @@ export default function Digitization() {
             {/* Results Table */}
             {results.length > 0 && (
                 <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                    <div className="px-6 py-4 border-b border-slate-200 flex justify-between items-center">
+                    <div className="flex flex-col gap-3 border-b border-slate-200 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
                         <h3 className="font-semibold text-slate-800">Resultados del Procesamiento</h3>
                         <Button 
                             variant="ghost" 
                             size="sm" 
-                            className="text-slate-400 hover:text-red-600"
+                            className="w-full text-slate-400 hover:text-red-600 sm:w-auto"
                             onClick={() => setResults([])}
                         >
                             Limpiar lista

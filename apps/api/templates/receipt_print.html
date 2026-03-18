@@ -12,6 +12,7 @@
             margin: 0;
             padding: 20px;
             font-size: 14px;
+            background-color: #f8fafc;
         }
 
         .receipt-container {
@@ -26,15 +27,33 @@
         .header {
             display: flex;
             justify-content: space-between;
+            align-items: flex-start;
+            gap: 24px;
             margin-bottom: 40px;
             border-bottom: 2px solid #3b82f6;
             padding-bottom: 20px;
+        }
+
+        .brand-block {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .brand-logo {
+            max-width: 180px;
+            height: auto;
+            object-fit: contain;
         }
 
         .company-info h1 {
             margin: 0;
             color: #1e3a8a;
             font-size: 24px;
+        }
+
+        .company-info p {
+            margin: 8px 0 0;
         }
 
         .receipt-details {
@@ -75,11 +94,17 @@
             margin-bottom: 20px;
         }
 
+        .payments-table td:last-child,
+        .payments-table th:last-child {
+            text-align: right;
+        }
+
         th,
         td {
             padding: 10px;
             text-align: left;
             border-bottom: 1px solid #e2e8f0;
+            vertical-align: top;
         }
 
         th {
@@ -119,6 +144,103 @@
             padding-top: 20px;
         }
 
+        @media (max-width: 640px) {
+            body {
+                padding: 12px;
+                font-size: 13px;
+            }
+
+            .receipt-container {
+                padding: 20px 16px;
+            }
+
+            .header {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 20px;
+                margin-bottom: 28px;
+            }
+
+            .brand-block {
+                gap: 12px;
+            }
+
+            .brand-logo {
+                max-width: 130px;
+            }
+
+            .receipt-details {
+                text-align: left;
+            }
+
+            .section {
+                margin-bottom: 24px;
+            }
+
+            .section-title {
+                font-size: 14px;
+                padding: 7px 8px;
+            }
+
+            .payments-table,
+            .payments-table tbody,
+            .payments-table tr,
+            .payments-table td {
+                display: block;
+                width: 100%;
+            }
+
+            .payments-table thead {
+                display: none;
+            }
+
+            .payments-table tr {
+                margin-bottom: 14px;
+                border: 1px solid #e2e8f0;
+                border-radius: 10px;
+                background: #fff;
+                overflow: hidden;
+            }
+
+            .payments-table td {
+                border-bottom: 1px solid #e2e8f0;
+                padding: 10px 12px 10px 128px;
+                position: relative;
+                min-height: 20px;
+                text-align: left !important;
+                white-space: normal;
+                word-break: break-word;
+            }
+
+            .payments-table td:last-child {
+                border-bottom: none;
+            }
+
+            .payments-table td::before {
+                content: attr(data-label);
+                position: absolute;
+                left: 12px;
+                top: 10px;
+                width: 104px;
+                font-weight: 700;
+                color: #475569;
+            }
+
+            .totals-table {
+                width: 100%;
+                float: none;
+            }
+
+            .totals-table td {
+                padding: 8px 0;
+            }
+
+            .footer {
+                margin-top: 32px;
+                padding-top: 16px;
+            }
+        }
+
         @media print {
             body {
                 padding: 0;
@@ -143,9 +265,15 @@
 <body>
     <div class="receipt-container">
         <div class="header">
-            <div class="company-info">
-                <h1>TUCUMIND</h1>
-                <p>Gestión de Recibos Digitales</p>
+            <div class="brand-block">
+                <img
+                    src="{{ request.url_for('web_public', path='tucumind-logo.png') }}"
+                    alt="TUCUMIND"
+                    class="brand-logo"
+                >
+                <div class="company-info">
+                    <p>Gestión de Recibos Digitales</p>
+                </div>
             </div>
             <div class="receipt-details">
                 {% if receipt.canceled_at %}
@@ -179,7 +307,7 @@
 
         <div class="section">
             <div class="section-title">Detalle de Pagos</div>
-            <table>
+            <table class="payments-table">
                 <thead>
                     <tr>
                         <th>Fecha</th>
@@ -192,11 +320,11 @@
                 <tbody>
                     {% for payment in receipt.payments %}
                     <tr>
-                        <td>{{ payment.payment_date.strftime('%d/%m/%Y') }}</td>
-                        <td>{{ payment.type.value }}</td>
-                        <td>{{ payment.bank or '-' }}</td>
-                        <td>{{ payment.ref_number or '-' }}</td>
-                        <td style="text-align: right;">$ {{ "%.2f"|format(payment.amount) }}</td>
+                        <td data-label="Fecha">{{ payment.payment_date.strftime('%d/%m/%Y') }}</td>
+                        <td data-label="Tipo">{{ payment.type.value }}</td>
+                        <td data-label="Banco">{{ payment.bank or '-' }}</td>
+                        <td data-label="Nº Referencia">{{ payment.ref_number or '-' }}</td>
+                        <td data-label="Importe">$ {{ "%.2f"|format(payment.amount) }}</td>
                     </tr>
                     {% else %}
                     <tr>

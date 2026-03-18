@@ -3,8 +3,14 @@
 @tailwind utilities;
 
 @layer base {
+    html,
+    body,
+    #root {
+        min-height: 100%;
+    }
+
     body {
-        @apply bg-slate-50 text-slate-900 antialiased selection:bg-blue-200 selection:text-blue-900;
+        @apply min-h-screen overflow-x-hidden bg-slate-50 text-slate-900 antialiased selection:bg-blue-200 selection:text-blue-900;
         font-family: 'Inter', system-ui, -apple-system, sans-serif;
     }
 }

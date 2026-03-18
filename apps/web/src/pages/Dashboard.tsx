@@ -83,7 +83,7 @@ export default function Dashboard() {
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
-                <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
+                <h1 className="text-2xl font-bold text-slate-900 tracking-tight sm:text-3xl">
                     Hola de nuevo, <span className="text-blue-600">{user?.username}</span> 👋
                 </h1>
             </div>
@@ -112,21 +112,21 @@ export default function Dashboard() {
                 })}
             </div>
 
-            <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl shadow-sm border border-blue-500 text-white p-8 mt-8 relative overflow-hidden">
+            <div className="relative mt-8 overflow-hidden rounded-2xl border border-blue-500 bg-gradient-to-br from-blue-600 to-indigo-700 p-5 text-white shadow-sm sm:p-8">
                 <div className="absolute top-0 right-0 -mt-4 -mr-4 w-32 h-32 bg-white bg-opacity-10 rounded-full blur-2xl"></div>
                 <div className="absolute bottom-0 left-0 -mb-4 -ml-4 w-24 h-24 bg-white bg-opacity-10 rounded-full blur-xl"></div>
 
                 <div className="relative z-10">
-                    <h2 className="text-2xl font-bold mb-2">Bienvenido a TUCUMIND</h2>
+                    <h2 className="mb-2 text-2xl font-bold">Bienvenido a TUCUMIND</h2>
                     <p className="text-blue-100 max-w-2xl mb-6">
                         Gestioná los recibos digitales de tu empresa de forma rápida, moderna y segura. Empezá agregando clientes o emitiendo nuevos recibos.
                     </p>
-                    <div className="flex flex-wrap gap-4">
-                        <a href="/recibos" className="inline-flex items-center px-4 py-2 bg-white text-blue-600 font-medium rounded-lg hover:bg-slate-50 transition-colors shadow-sm">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:gap-4">
+                        <a href="/recibos" className="inline-flex w-full items-center justify-center rounded-lg bg-white px-4 py-2 font-medium text-blue-600 shadow-sm transition-colors hover:bg-slate-50 sm:w-auto">
                             <Receipt className="h-4 w-4 mr-2" />
                             Emitir Recibo
                         </a>
-                        <a href="/clientes" className="inline-flex items-center px-4 py-2 bg-blue-700 bg-opacity-50 text-white font-medium rounded-lg hover:bg-opacity-70 transition-colors border border-blue-500">
+                        <a href="/clientes" className="inline-flex w-full items-center justify-center rounded-lg border border-blue-500 bg-blue-700 bg-opacity-50 px-4 py-2 font-medium text-white transition-colors hover:bg-opacity-70 sm:w-auto">
                             <Users className="h-4 w-4 mr-2" />
                             Ver Clientes
                         </a>

@@ -40,10 +40,10 @@ export function DataTable<T>({
     );
 
     return (
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
+        <div className="flex min-w-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
             {onSearch && (
-                <div className="p-4 border-b border-slate-200 bg-slate-50/50">
-                    <div className="relative max-w-md">
+                <div className="border-b border-slate-200 bg-slate-50/50 p-4">
+                    <div className="relative w-full sm:max-w-md">
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                             <Search className="h-4 w-4 text-slate-400" />
                         </div>
@@ -57,15 +57,15 @@ export function DataTable<T>({
                 </div>
             )}
 
-            <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-slate-200">
+            <div className="min-w-0 overflow-x-auto">
+                <table className="min-w-full divide-y divide-slate-200 md:min-w-[720px]">
                     <thead className="bg-slate-50">
                         <tr>
                             {columns.map((col, idx) => (
                                 <th
                                     key={idx}
                                     scope="col"
-                                    className={`px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider ${col.className || ''}`}
+                                    className={`px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500 sm:px-6 ${col.className || ''}`}
                                 >
                                     {col.header}
                                 </th>
@@ -75,7 +75,7 @@ export function DataTable<T>({
                     <tbody className="bg-white divide-y divide-slate-200">
                         {isLoading ? (
                             <tr>
-                                <td colSpan={columns.length} className="px-6 py-8 text-center text-slate-500">
+                                <td colSpan={columns.length} className="px-4 py-8 text-center text-slate-500 sm:px-6">
                                     <div className="flex justify-center items-center">
                                         <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mr-2"></div>
                                         Cargando datos...
@@ -84,7 +84,7 @@ export function DataTable<T>({
                             </tr>
                         ) : data.length === 0 ? (
                             <tr>
-                                <td colSpan={columns.length} className="px-6 py-8 text-center text-slate-500">
+                                <td colSpan={columns.length} className="px-4 py-8 text-center text-slate-500 sm:px-6">
                                     No se encontraron resultados
                                 </td>
                             </tr>
@@ -92,7 +92,7 @@ export function DataTable<T>({
                             paginatedData.map((item) => (
                                 <tr key={keyExtractor(item)} className="hover:bg-slate-50 transition-colors">
                                     {columns.map((col, idx) => (
-                                        <td key={idx} className={`px-6 py-4 whitespace-nowrap text-sm text-slate-700 ${col.className || ''}`}>
+                                        <td key={idx} className={`whitespace-nowrap px-4 py-4 text-sm text-slate-700 sm:px-6 ${col.className || ''}`}>
                                             {typeof col.accessor === 'function' ? col.accessor(item) : String(item[col.accessor])}
                                         </td>
                                     ))}
@@ -104,7 +104,7 @@ export function DataTable<T>({
             </div>
 
             {!isLoading && data.length > itemsPerPage && (
-                <div className="px-6 py-3 border-t border-slate-200 bg-slate-50 flex items-center justify-between">
+                <div className="flex flex-col gap-3 border-t border-slate-200 bg-slate-50 px-4 py-3 sm:px-6 md:flex-row md:items-center md:justify-between">
                     <div className="text-sm text-slate-500">
                         Mostrando <span className="font-medium text-slate-900">{(currentPage - 1) * itemsPerPage + 1}</span> a{' '}
                         <span className="font-medium text-slate-900">
@@ -113,7 +113,7 @@ export function DataTable<T>({
                         de <span className="font-medium text-slate-900">{data.length}</span> resultados
                     </div>
 
-                    <div className="flex items-center space-x-2">
+                    <div className="flex flex-wrap items-center gap-2">
                         <button
                             onClick={() => setCurrentPage(1)}
                             disabled={currentPage === 1}

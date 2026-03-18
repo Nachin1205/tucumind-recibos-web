@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Plus, FileText, Ban, Trash2 } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Plus, FileText, Ban, Trash2, Printer } from 'lucide-react';
 import { Receipt, Client, PaymentType, ReceiptPayment } from '../types';
 import api from '../api/client';
 import { Button } from '../components/Button';
@@ -19,6 +19,10 @@ export default function Receipts() {
     const [clientId, setClientId] = useState<string>('');
     const [concept, setConcept] = useState('');
     const [subtotal, setSubtotal] = useState(0);
+    const [previewHtml, setPreviewHtml] = useState('');
+    const [previewTitle, setPreviewTitle] = useState('Vista del recibo');
+    const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+    const [isPreviewLoading, setIsPreviewLoading] = useState(false);
     const [retentions, setRetentions] = useState({
         iibb: 0,
         ganancias: 0,
@@ -26,6 +30,7 @@ export default function Receipts() {
         tem: 0,
     });
     const [payments, setPayments] = useState<Omit<ReceiptPayment, 'id' | 'receipt_id' | 'payment_date'>[]>([]);
+    const previewFrameRef = useRef<HTMLIFrameElement>(null);
 
     const fetchReceipts = async () => {
         setIsLoading(true);
@@ -86,10 +91,36 @@ export default function Receipts() {
         setPayments(newPayments);
     };
 
+    const loadPrintableReceipt = async (receipt: Pick<Receipt, 'id' | 'receipt_number'>) => {
+        setPreviewTitle(`Recibo ${String(receipt.receipt_number).padStart(8, '0')}`);
+        setPreviewHtml('');
+        setIsPreviewOpen(true);
+        setIsPreviewLoading(true);
+
+        try {
+            const response = await api.get(`/receipts/${receipt.id}/print`, {
+                responseType: 'text',
+                headers: {
+                    Accept: 'text/html',
+                },
+            });
+            setPreviewHtml(response.data);
+        } catch (error) {
+            setIsPreviewOpen(false);
+            console.error('Failed to print receipt:', error);
+            alert('Error al generar la vista imprimible del recibo');
+        } finally {
+            setIsPreviewLoading(false);
+        }
+    };
+
+    const handlePreviewPrint = () => {
+        previewFrameRef.current?.contentWindow?.print();
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        // Quick validation
         const totalPayments = payments.reduce((acc, p) => acc + Number(p.amount), 0);
         const totalReceipt = calculateTotal();
 
@@ -114,12 +145,13 @@ export default function Receipts() {
                 }))
             };
 
-            await api.post('/receipts/', payload);
+            const response = await api.post<Receipt>('/receipts/', payload);
+            await fetchReceipts();
             handleCloseModal();
-            fetchReceipts();
-        } catch (error) {
+            await loadPrintableReceipt(response.data);
+        } catch (error: any) {
             console.error('Failed to create receipt:', error);
-            alert('Error al crear el recibo');
+            alert(error.response?.data?.detail || 'Error al crear el recibo');
         }
     };
 
@@ -139,30 +171,11 @@ export default function Receipts() {
     };
 
     const handlePrint = async (id: number) => {
-        const printWindow = window.open('', '_blank', 'noopener,noreferrer');
-        if (!printWindow) {
-            alert('El navegador bloqueó la ventana de impresión');
-            return;
-        }
-
-        printWindow.document.write('<p style="font-family: sans-serif; padding: 24px;">Generando recibo...</p>');
-
-        try {
-            const response = await api.get(`/receipts/${id}/print`, {
-                responseType: 'text',
-                headers: {
-                    Accept: 'text/html',
-                },
-            });
-
-            printWindow.document.open();
-            printWindow.document.write(response.data);
-            printWindow.document.close();
-        } catch (error) {
-            printWindow.close();
-            console.error('Failed to print receipt:', error);
-            alert('Error al generar la vista imprimible del recibo');
-        }
+        const receipt = receipts.find((item) => item.id === id);
+        await loadPrintableReceipt({
+            id,
+            receipt_number: receipt?.receipt_number ?? id,
+        });
     };
 
     const filteredReceipts = receipts.filter((receipt) => {
@@ -244,12 +257,12 @@ export default function Receipts() {
 
     return (
         <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                     <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Recibos</h1>
                     <p className="text-sm text-slate-500 mt-1">Emisión y gestión de recibos digitales.</p>
                 </div>
-                <Button onClick={handleOpenModal} icon={Plus}>
+                <Button onClick={handleOpenModal} icon={Plus} className="w-full sm:w-auto">
                     Emitir Recibo
                 </Button>
             </div>
@@ -300,8 +313,8 @@ export default function Receipts() {
                     {/* Section: Importes y Retenciones */}
                     <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
                         <h4 className="text-sm font-semibold text-slate-800 mb-3 uppercase tracking-wider">Importes y Retenciones</h4>
-                        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                            <div className="col-span-2 md:col-span-1">
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
+                            <div className="sm:col-span-2 xl:col-span-1">
                                 <Input
                                     label="Subtotal ($)"
                                     type="number"
@@ -350,9 +363,9 @@ export default function Receipts() {
                                 className="font-mono text-red-600"
                             />
                         </div>
-                        <div className="mt-4 pt-3 border-t border-slate-200 flex justify-end">
+                        <div className="mt-4 flex flex-col gap-1 border-t border-slate-200 pt-3 sm:flex-row sm:justify-end">
                             <div className="text-lg">
-                                <span className="text-slate-500 mr-2">Total a cobrar:</span>
+                                <span className="mr-2 text-slate-500">Total a cobrar:</span>
                                 <span className="font-bold text-slate-900 font-mono">$ {calculateTotal().toLocaleString('es-AR', { minimumFractionDigits: 2 })}</span>
                             </div>
                         </div>
@@ -360,17 +373,17 @@ export default function Receipts() {
 
                     {/* Section: Pagos */}
                     <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                        <div className="flex justify-between items-center mb-3">
+                        <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                             <h4 className="text-sm font-semibold text-slate-800 uppercase tracking-wider">Medios de Pago</h4>
-                            <Button type="button" variant="secondary" size="sm" icon={Plus} onClick={handleAddPayment}>
+                            <Button type="button" variant="secondary" size="sm" icon={Plus} onClick={handleAddPayment} className="w-full sm:w-auto">
                                 Agregar Pago
                             </Button>
                         </div>
 
                         <div className="space-y-3">
                             {payments.map((payment, index) => (
-                                <div key={index} className="flex flex-wrap items-end gap-3 p-3 bg-white rounded-lg border border-slate-200 shadow-sm relative pr-10">
-                                    <div className="flex-1 min-w-[150px]">
+                                <div key={index} className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-3 shadow-sm sm:flex-row sm:flex-wrap sm:items-end">
+                                    <div className="min-w-0 flex-1 sm:min-w-[150px]">
                                         <label className="block text-xs font-medium text-slate-500 mb-1">Tipo</label>
                                         <select
                                             className="block w-full py-1.5 px-3 border border-slate-300 bg-white rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
@@ -383,7 +396,7 @@ export default function Receipts() {
                                         </select>
                                     </div>
 
-                                    <div className="flex-1 min-w-[120px]">
+                                    <div className="min-w-0 flex-1 sm:min-w-[120px]">
                                         <Input
                                             label="Monto ($)"
                                             type="number"
@@ -398,7 +411,7 @@ export default function Receipts() {
 
                                     {payment.type !== PaymentType.CASH && (
                                         <>
-                                            <div className="flex-1 min-w-[150px]">
+                                            <div className="min-w-0 flex-1 sm:min-w-[150px]">
                                                 <Input
                                                     label="Banco"
                                                     value={payment.bank || ''}
@@ -406,7 +419,7 @@ export default function Receipts() {
                                                     className="py-1.5 text-sm"
                                                 />
                                             </div>
-                                            <div className="flex-1 min-w-[150px]">
+                                            <div className="min-w-0 flex-1 sm:min-w-[150px]">
                                                 <Input
                                                     label="Referencia / Nº"
                                                     value={payment.ref_number || ''}
@@ -421,7 +434,7 @@ export default function Receipts() {
                                         <button
                                             type="button"
                                             onClick={() => handleRemovePayment(index)}
-                                            className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                                            className="inline-flex h-9 w-9 items-center justify-center self-end rounded-md text-red-400 transition-colors hover:bg-red-50 hover:text-red-600"
                                             title="Quitar pago"
                                         >
                                             <Trash2 className="h-4 w-4" />
@@ -431,7 +444,7 @@ export default function Receipts() {
                             ))}
                         </div>
 
-                        <div className="mt-4 pt-3 flex justify-end">
+                        <div className="mt-4 flex flex-col gap-1 pt-3 sm:flex-row sm:justify-end">
                             <div className="text-sm">
                                 <span className="text-slate-500 mr-2">Suma de pagos:</span>
                                 <span className={`font-semibold font-mono ${Math.abs(payments.reduce((acc, p) => acc + Number(p.amount), 0) - calculateTotal()) > 0.01
@@ -444,15 +457,54 @@ export default function Receipts() {
                         </div>
                     </div>
 
-                    <div className="flex justify-end space-x-3 pt-4 border-t border-slate-100">
-                        <Button variant="secondary" onClick={handleCloseModal} type="button">
+                    <div className="flex flex-col-reverse gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:justify-end">
+                        <Button variant="secondary" onClick={handleCloseModal} type="button" className="w-full sm:w-auto">
                             Cancelar
                         </Button>
-                        <Button type="submit">
+                        <Button type="submit" className="w-full sm:w-auto">
                             Emitir Recibo
                         </Button>
                     </div>
                 </form>
+            </Modal>
+
+            <Modal
+                isOpen={isPreviewOpen}
+                onClose={() => setIsPreviewOpen(false)}
+                title={previewTitle}
+                width="4xl"
+            >
+                <div className="space-y-4">
+                    <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                        <Button variant="secondary" onClick={() => setIsPreviewOpen(false)} type="button" className="w-full sm:w-auto">
+                            Cerrar
+                        </Button>
+                        <Button
+                            type="button"
+                            icon={Printer}
+                            onClick={handlePreviewPrint}
+                            disabled={!previewHtml || isPreviewLoading}
+                            className="w-full sm:w-auto"
+                        >
+                            Imprimir
+                        </Button>
+                    </div>
+
+                    <div className="overflow-hidden rounded-xl border border-slate-200 bg-slate-100">
+                        {isPreviewLoading ? (
+                            <div className="flex h-[70vh] items-center justify-center px-6 text-center text-slate-500">
+                                Generando vista previa del recibo...
+                            </div>
+                        ) : (
+                            <iframe
+                                ref={previewFrameRef}
+                                title={previewTitle}
+                                srcDoc={previewHtml}
+                                className="h-[70vh] w-full bg-white"
+                            />
+                        )}
+                    </div>
+                </div>
             </Modal>
         </div>
     );
